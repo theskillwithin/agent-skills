@@ -1,6 +1,6 @@
 ---
 name: upgrade-packages
-description: Upgrade dependencies to latest, researching every release in between first.
+description: Upgrade dependencies to latest, researching every release in between first, and open a PR.
 disable-model-invocation: true
 argument-hint: "[package ...]"
 ---
@@ -27,7 +27,7 @@ Done when every in-scope dependency has current, target, and range, or is alread
 
 ## 2. Baseline
 
-If you're on the default branch, create `upgrade-packages-<YYYY-MM-DD>` and work there.
+If you're on the default branch, create a branch and work there, named the way the repo names its dependency branches (`upgrade-packages-<YYYY-MM-DD>` when it has no pattern).
 
 Run the checks the project defines (its scripts and CI: typecheck, lint, unit, integration and e2e tests, build) and record which pass. That's the **baseline**: every check green now stays green through the upgrade. Checks already red are noted and left alone. Point anything with side effects at throwaway targets: a scratch database container, a dummy analytics key.
 
@@ -86,9 +86,9 @@ Fix each real finding about the upgrade, re-run the baseline checks, re-test any
 
 Done when every finding is fixed, rejected with a reason, or listed for later.
 
-## 8. Report
+## 8. Pull request
 
-Reply with:
+Push the branch and open a PR into the branch the repo merges work into (the default branch unless its docs name another). Use the `file-pr` skill when it's installed. Follow the repo's PR conventions: its template, contributing docs, agent instructions, and the shape of its recent dependency PRs. The body carries the report:
 
 - A table: family, from → to (or held, with reason), notable changes.
 - Each adopted feature, with the files it changed.
@@ -97,3 +97,7 @@ Reply with:
 - Review findings: what was fixed, what was rejected and why, and what was left for later.
 - Silent behavior changes, and anything needing a manual look outside the repo (env vars, deploy config, data migrations).
 - Sources: the release notes and guides the briefs used.
+
+With no remote to push to, reply with the report instead. Otherwise reply with the PR link and the report's highlights.
+
+Done when the PR is open and linked in your reply, or the report is in your reply when there's no remote.
