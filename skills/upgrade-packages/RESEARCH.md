@@ -31,7 +31,7 @@ Classify each feature:
 
 ## Brief
 
-Return this, terse, nothing else:
+Save this to the path you were given, then return it. Terse, nothing else:
 
 ```
 ## <family>: <current> → <target>

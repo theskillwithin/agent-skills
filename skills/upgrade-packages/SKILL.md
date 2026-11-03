@@ -13,10 +13,12 @@ Upgrade this project's dependencies to their latest versions. Research comes fir
 
 ## 1. Inventory
 
-Find every manifest and lockfile; the lockfile decides the package manager. For each in-scope dependency, record:
+Find every manifest and lockfile; the lockfile decides the package manager. Then read what the repo says about its dependencies: dependency docs (a `DEPENDENCIES.md`, an upgrade runbook), Renovate or Dependabot ignore rules, and comments beside pins. A `~` or exact specifier is often a deliberate pin; find its reason before moving past it.
+
+For each in-scope dependency, record:
 
 - **current**: the version the lockfile resolves, not the manifest's specifier.
-- **target**: the registry's `latest` tag. Stay off prereleases unless we're already on one. Type packages that track a runtime follow the runtime we actually run: `@types/node` matches the Node major in `.nvmrc`, `engines`, or CI, not npm's latest.
+- **target**: the newest stable version: the registry's `latest` tag, or the highest stable release when that tag points at a prerelease. Prereleases only when we're already on one. A documented hold is the target, recorded with its reason. Type packages that track a runtime follow the runtime we actually run: `@types/node` matches the Node major in `.nvmrc`, `engines`, or CI, not npm's latest.
 - **range**: every published version after current, up to and including target, taken from the registry's version list (`npm view <pkg> time --json` for npm, the equivalent elsewhere) so the research can account for each one.
 
 Group dependencies into **families**: packages that move together because of peer dependencies or a shared release train (`react` + `react-dom` + `@types/react`; a framework and its plugins; one monorepo's scoped packages). A family is researched, upgraded, and held as a unit.
@@ -27,13 +29,13 @@ Done when every in-scope dependency has current, target, and range, or is alread
 
 If you're on the default branch, create `upgrade-packages-<YYYY-MM-DD>` and work there.
 
-Run the checks the project defines (its scripts and CI: typecheck, lint, tests, build) and record which pass. That's the **baseline**: every check green now stays green through the upgrade. Checks already red are noted and left alone.
+Run the checks the project defines (its scripts and CI: typecheck, lint, unit, integration and e2e tests, build) and record which pass. That's the **baseline**: every check green now stays green through the upgrade. Checks already red are noted and left alone. Point anything with side effects at throwaway targets: a scratch database container, a dummy analytics key.
 
 Done when you're on a working branch and every check has a recorded pass or fail.
 
 ## 3. Research
 
-Every family with a non-empty range gets a **brief**, written by following [`RESEARCH.md`](RESEARCH.md). When your host has subagents, dispatch one per family in parallel (families with only patch releases can share one). Give each the absolute path to `RESEARCH.md`, the repo path, and its family's packages with current and target. Without subagents, read `RESEARCH.md` and write the briefs yourself.
+Every family with a non-empty range gets a **brief**, written by following [`RESEARCH.md`](RESEARCH.md). When your host has subagents, dispatch one per family in parallel (families with only patch releases can share one). Give each the absolute path to `RESEARCH.md`, the repo path, its family's packages with current, target, and range, and where to save its brief: `upgrade-packages-<YYYY-MM-DD>/briefs/<family>.md` in the system temp directory. Tell each the checkout is read-only, since they share it. Without subagents, read `RESEARCH.md` and write the briefs yourself.
 
 Done when every family has a brief and every version in every range appears in one.
 
@@ -45,9 +47,9 @@ Turn the briefs into ordered **batches**:
 2. One batch for all families whose range brings nothing that touches our code beyond the version bump.
 3. One batch per remaining family, dependencies before the families built on them, majors last.
 
-Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Save the plan and every brief to `upgrade-packages-<YYYY-MM-DD>.md` in the system temp directory, where the test and review steps read them. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users. Ask with your host's question tool (`AskUserQuestion` in Claude Code, `request_user_input` in Codex) so the thread shows it's waiting.
+Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Save the plan as `plan.md` beside the `briefs/` directory, linking each batch to its briefs; the test and review steps read both. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users. Ask with your host's question tool (`AskUserQuestion` in Claude Code, `request_user_input` in Codex) so the thread shows it's waiting.
 
-Done when every family with work is in a batch, the plan file is saved, and the plan is posted.
+Done when every family with work is in a batch, `plan.md` is saved, and the plan is posted.
 
 ## 5. Upgrade
 
@@ -65,7 +67,7 @@ Done when every in-scope dependency is at target or held with a reason, and ever
 
 ## 6. Test locally
 
-The checks prove the code builds and the tests pass; this step proves the app still works. Run it the way a developer does (the dev server, then the production build if the project has one) and exercise every path the upgrade touched: each silent change in the briefs, each adopted feature, the features behind every migrated call site, and the original problem behind each removed workaround. Watch the terminal and the browser console for new errors and deprecation warnings. For a library, exercise its public entry points the way a consumer would: its examples, or a short script against the built output.
+The checks prove the code builds and the tests pass; this step proves the app still works. Run it the way a developer does (the dev server, then the production build if the project has one), against local services and the baseline's throwaway targets. Anything that deploys or changes cloud resources is out: run what starts without it and record the rest. Exercise every path the upgrade touched: each silent change in the briefs, each adopted feature, the features behind every migrated call site, and the original problem behind each removed workaround. Watch the terminal and the browser console for errors and deprecation warnings, and judge them against the base: run the base commit the same way in a second worktree and count only what's new. For a library, exercise its public entry points the way a consumer would: its examples, or a short script against the built output.
 
 Fix what breaks, re-run the baseline checks, and commit.
 
@@ -73,11 +75,11 @@ Done when every touched path has been exercised and works, or is recorded as not
 
 ## 7. Review
 
-Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by reviewers who didn't do the upgrade: the `sol-loop` skill when it's installed, with the plan file as the intent; otherwise a fresh subagent given the diff and the plan file. The review covers:
+Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by reviewers who didn't do the upgrade: the `sol-loop` skill when it's installed, with `plan.md` as the intent; otherwise a fresh subagent given the diff and `plan.md`. The review covers:
 
 - Every migration step in the briefs, applied at every cited call site, with no deprecated API left in use.
 - Adopt changes and workaround removals: correct and complete.
-- The lockfile: no duplicate versions within a family, no transitive majors nobody researched.
+- The lockfile: no duplicate versions within a family, no extraneous entries, no transitive majors nobody researched.
 - The manifests: specifier styles kept, nothing outside scope bumped.
 
 Fix each real finding about the upgrade, re-run the baseline checks, re-test any path the fix touches, and commit. Record a reason for every finding you reject. Findings about code the upgrade didn't change go in the report for later.
