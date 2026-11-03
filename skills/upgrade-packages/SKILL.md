@@ -1,6 +1,6 @@
 ---
 name: upgrade-packages
-description: Upgrade dependencies to latest, researching every release in between first, and open a PR.
+description: Upgrade dependencies to latest, researching every release in between first, then open and babysit a PR.
 disable-model-invocation: true
 argument-hint: "[package ...]"
 ---
@@ -98,6 +98,8 @@ Push the branch and open a PR into the branch the repo merges work into (the def
 - Silent behavior changes, and anything needing a manual look outside the repo (env vars, deploy config, data migrations).
 - Sources: the release notes and guides the briefs used.
 
+Then babysit the PR with the `babysit-pr` skill when it's installed: fix real CI failures and review findings, re-running the baseline checks before each push, until the PR is ready to merge. Merging stays with the user.
+
 With no remote to push to, reply with the report instead. Otherwise reply with the PR link and the report's highlights.
 
-Done when the PR is open and linked in your reply, or the report is in your reply when there's no remote.
+Done when the PR is ready to merge (or open, without `babysit-pr`) and linked in your reply, or the report is in your reply when there's no remote.

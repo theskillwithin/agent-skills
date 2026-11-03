@@ -1,5 +1,5 @@
 interface:
   display_name: "Upgrade Packages"
-  short_description: "Research, upgrade deps to latest, test, review, open a PR"
+  short_description: "Research, upgrade deps, test, review, and babysit a PR"
 policy:
   allow_implicit_invocation: false
