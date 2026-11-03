@@ -1,6 +1,6 @@
 ---
 name: upgrade-packages
-description: Upgrade dependencies to their latest versions, researching every release in between first, adopting the new features worth using, then testing locally and reviewing the result.
+description: Upgrade dependencies to latest, researching every release in between first.
 disable-model-invocation: true
 argument-hint: "[package ...]"
 ---
@@ -15,7 +15,7 @@ Upgrade this project's dependencies to their latest versions. Research comes fir
 
 Find every manifest and lockfile; the lockfile decides the package manager. For each in-scope dependency, record:
 
-- **current**: the version the lockfile resolves, not the manifest range.
+- **current**: the version the lockfile resolves, not the manifest's specifier.
 - **target**: the registry's `latest` tag. Stay off prereleases unless we're already on one. Type packages that track a runtime follow the runtime we actually run: `@types/node` matches the Node major in `.nvmrc`, `engines`, or CI, not npm's latest.
 - **range**: every published version after current, up to and including target, taken from the registry's version list (`npm view <pkg> time --json` for npm, the equivalent elsewhere) so the research can account for each one.
 
@@ -28,6 +28,8 @@ Done when every in-scope dependency has current, target, and range, or is alread
 If you're on the default branch, create `upgrade-packages-<YYYY-MM-DD>` and work there.
 
 Run the checks the project defines (its scripts and CI: typecheck, lint, tests, build) and record which pass. That's the **baseline**: every check green now stays green through the upgrade. Checks already red are noted and left alone.
+
+Done when you're on a working branch and every check has a recorded pass or fail.
 
 ## 3. Research
 
@@ -43,7 +45,9 @@ Turn the briefs into ordered **batches**:
 2. One batch for all families whose range brings nothing that touches our code beyond the version bump.
 3. One batch per remaining family, dependencies before the families built on them, majors last.
 
-Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Save the plan and every brief to `upgrade-packages-<YYYY-MM-DD>.md` in the system temp directory, where the test and review steps read them. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users.
+Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Save the plan and every brief to `upgrade-packages-<YYYY-MM-DD>.md` in the system temp directory, where the test and review steps read them. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users. Ask with your host's question tool (`AskUserQuestion` in Claude Code, `request_user_input` in Codex) so the thread shows it's waiting.
+
+Done when every family with work is in a batch, the plan file is saved, and the plan is posted.
 
 ## 5. Upgrade
 
@@ -69,16 +73,16 @@ Done when every touched path has been exercised and works, or is recorded as not
 
 ## 7. Review
 
-Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by a reviewer who didn't do the upgrade. If your host has a code review skill or command, run it on the branch with the plan file as the spec; otherwise dispatch a fresh subagent with the diff and the plan file. Either way, the review covers:
+Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by reviewers who didn't do the upgrade: the `council` skill when it's installed, with the plan file as the spec; otherwise a fresh subagent given the diff and the plan file. The review covers:
 
 - Every migration step in the briefs, applied at every cited call site, with no deprecated API left in use.
 - Adopt changes and workaround removals: correct and complete.
 - The lockfile: no duplicate versions within a family, no transitive majors nobody researched.
 - The manifests: specifier styles kept, nothing outside scope bumped.
 
-Fix each real finding, re-run the baseline checks, re-test any path the fix touches, and commit. Record a reason for every finding you reject.
+Fix each real finding about the upgrade, re-run the baseline checks, re-test any path the fix touches, and commit. Record a reason for every finding you reject. Findings about code the upgrade didn't change go in the report for later.
 
-Done when every finding is fixed or rejected with a reason.
+Done when every finding is fixed, rejected with a reason, or listed for later.
 
 ## 8. Report
 
@@ -88,6 +92,6 @@ Reply with:
 - Each adopted feature, with the files it changed.
 - The **optional** features from the briefs, each with the files it would touch, so the user can pick them up later.
 - What was tested locally and how, and what couldn't be tested locally, with the reason.
-- Review findings: what was fixed, and what was rejected and why.
+- Review findings: what was fixed, what was rejected and why, and what was left for later.
 - Silent behavior changes, and anything needing a manual look outside the repo (env vars, deploy config, data migrations).
 - Sources: the release notes and guides the briefs used.
