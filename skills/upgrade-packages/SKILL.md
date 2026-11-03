@@ -1,6 +1,6 @@
 ---
 name: upgrade-packages
-description: Upgrade dependencies to their latest versions, researching every release in between first and adopting the new features worth using.
+description: Upgrade dependencies to their latest versions, researching every release in between first, adopting the new features worth using, then testing locally and reviewing the result.
 disable-model-invocation: true
 argument-hint: "[package ...]"
 ---
@@ -43,7 +43,7 @@ Turn the briefs into ordered **batches**:
 2. One batch for all families whose range brings nothing that touches our code beyond the version bump.
 3. One batch per remaining family, dependencies before the families built on them, majors last.
 
-Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users.
+Each batch lists its migration steps, codemods, adopt features, and removable workarounds. Save the plan and every brief to `upgrade-packages-<YYYY-MM-DD>.md` in the system temp directory, where the test and review steps read them. Post the plan in chat, then start upgrading. Stop for the user only when a migration forces a product decision the briefs can't settle, such as two replacement APIs that behave differently for users.
 
 ## 5. Upgrade
 
@@ -57,14 +57,37 @@ For each batch, in order:
 
 A family that can't reach its target cleanly (a regression in latest, a peer that hasn't caught up) is **held** at the highest version that passes, with the reason recorded. Commit it at that version.
 
-Done when every in-scope dependency is at target or held with a reason, and every baseline-green check is green on the final commit.
+Done when every in-scope dependency is at target or held with a reason, and every baseline-green check is green.
 
-## 6. Report
+## 6. Test locally
+
+The checks prove the code builds and the tests pass; this step proves the app still works. Run it the way a developer does (the dev server, then the production build if the project has one) and exercise every path the upgrade touched: each silent change in the briefs, each adopted feature, the features behind every migrated call site, and the original problem behind each removed workaround. Watch the terminal and the browser console for new errors and deprecation warnings. For a library, exercise its public entry points the way a consumer would: its examples, or a short script against the built output.
+
+Fix what breaks, re-run the baseline checks, and commit.
+
+Done when every touched path has been exercised and works, or is recorded as not testable locally with the reason (needs production data, a third-party webhook, a deploy-only setting).
+
+## 7. Review
+
+Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by a reviewer who didn't do the upgrade. If your host has a code review skill or command, run it on the branch with the plan file as the spec; otherwise dispatch a fresh subagent with the diff and the plan file. Either way, the review covers:
+
+- Every migration step in the briefs, applied at every cited call site, with no deprecated API left in use.
+- Adopt changes and workaround removals: correct and complete.
+- The lockfile: no duplicate versions within a family, no transitive majors nobody researched.
+- The manifests: specifier styles kept, nothing outside scope bumped.
+
+Fix each real finding, re-run the baseline checks, re-test any path the fix touches, and commit. Record a reason for every finding you reject.
+
+Done when every finding is fixed or rejected with a reason.
+
+## 8. Report
 
 Reply with:
 
 - A table: family, from → to (or held, with reason), notable changes.
 - Each adopted feature, with the files it changed.
 - The **optional** features from the briefs, each with the files it would touch, so the user can pick them up later.
-- Silent behavior changes the checks can't catch, and anything needing a manual look outside the repo (env vars, deploy config, data migrations).
+- What was tested locally and how, and what couldn't be tested locally, with the reason.
+- Review findings: what was fixed, and what was rejected and why.
+- Silent behavior changes, and anything needing a manual look outside the repo (env vars, deploy config, data migrations).
 - Sources: the release notes and guides the briefs used.

@@ -1,5 +1,5 @@
 interface:
   display_name: "Upgrade Packages"
-  short_description: "Research every release, then upgrade deps to latest"
+  short_description: "Research, upgrade deps to latest, test, and review"
 policy:
   allow_implicit_invocation: false
