@@ -13,7 +13,8 @@ This puts each skill in `~/.agents/skills` and links it into `~/.claude/skills`.
 ## Update
 
 ```bash
-npx skills update -g -y
+npx skills update upgrade-packages -g -y   # one skill
+npx skills update -g -y                    # every skill installed with the skills CLI, including third-party ones
 ```
 
 ## Add a skill
