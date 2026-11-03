@@ -73,7 +73,7 @@ Done when every touched path has been exercised and works, or is recorded as not
 
 ## 7. Review
 
-Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by reviewers who didn't do the upgrade: the `council` skill when it's installed, with the plan file as the spec; otherwise a fresh subagent given the diff and the plan file. The review covers:
+Get the whole branch (`git diff <merge-base>...HEAD`) reviewed by reviewers who didn't do the upgrade: the `sol-loop` skill when it's installed, with the plan file as the intent; otherwise a fresh subagent given the diff and the plan file. The review covers:
 
 - Every migration step in the briefs, applied at every cited call site, with no deprecated API left in use.
 - Adopt changes and workaround removals: correct and complete.
